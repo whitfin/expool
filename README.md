@@ -1,4 +1,4 @@
-# ExPool
+# ExPool [![Build Status](https://travis-ci.org/zackehh/expool.svg?branch=master)](https://travis-ci.org/zackehh/expool) 
 
 A simple Process pooling library to avoid having to repeatedly write the boilerplate into your projects. Supports a couple of cool options, but nothing too crazy (yet).
 
