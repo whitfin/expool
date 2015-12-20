@@ -1,13 +1,30 @@
 defmodule ExPool.Mixfile do
   use Mix.Project
 
+  @url_docs "http://hexdocs.pm/expool"
+  @url_github "https://github.com/zackehh/expool"
+
   def project do
-    [app: :expool,
-     version: "0.0.1",
-     elixir: "~> 1.1",
-     build_embedded: Mix.env == :prod,
-     start_permanent: Mix.env == :prod,
-     deps: deps]
+    [
+      app: :expool,
+      name: "ExPool",
+      description: "Simple process pooling and task submission",
+      package: %{
+        files: [ "LICENSE", "mix.exs", "README.md", "lib" ],
+        licenses: [ "MIT" ],
+        links: %{ "Docs" => @url_docs, "GitHub" => @url_github },
+        maintainers: [ "Isaac Whitfield" ]
+      },
+      version: "0.0.1",
+      elixir: "~> 1.1",
+      deps: deps,
+      docs: [
+        extras: [ "README.md" ],
+        main: "extra-readme",
+        source_ref: "master",
+        source_url: @url_github
+      ]
+    ]
   end
 
   # Configuration for the OTP application
