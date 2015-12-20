@@ -17,10 +17,9 @@ defmodule ExPool.Mixfile do
       },
       version: "0.0.1",
       elixir: "~> 1.1",
-      deps: deps,
+      deps: deps(Mix.env),
       docs: [
         extras: [ "README.md" ],
-        main: "extra-readme",
         source_ref: "master",
         source_url: @url_github
       ]
@@ -43,7 +42,13 @@ defmodule ExPool.Mixfile do
   #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1.0"}
   #
   # Type "mix help deps" for more examples and options
-  defp deps do
-    []
+  defp deps(:docs) do
+    [
+      { :earmark, "~> 0.1",  optional: true },
+      { :ex_doc,  "~> 0.10", optional: true }
+    ]
+  end
+  defp deps(_) do
+    [ ]
   end
 end

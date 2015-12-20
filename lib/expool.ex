@@ -91,12 +91,12 @@ defmodule ExPool do
   a pool marked as inactive to avoid developers sending uncaught messages through
   the pipeline.
   """
-  def terminate(%ExPool{ } = p) do
-    p.pool
+  def terminate(%ExPool{ } = pool) do
+    pool.pool
     |> HashDict.values
     |> Enum.each(&(Process.exit(&1, :shutdown)))
 
-    %ExPool{ p | active: false }
+    %ExPool{ pool | active: false }
   end
   def terminate(id) when is_atom(id) or is_pid(id) do
     pool = terminate(get_pool(id))
