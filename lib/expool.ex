@@ -3,7 +3,7 @@ defmodule ExPool do
   The main ExPool interface, allowing for pool creation/termination and
   task submission.
   """
-  defstruct index: 1, opts: {}, pool: nil, size: nil, active: true
+  defstruct name: nil, opts: nil, pool: nil, size: nil, active: true
 
   @doc """
   Creates a new set of N Processes, adding them to a HashDict so they
@@ -11,7 +11,7 @@ defmodule ExPool do
   ExPool.Options.parse/1, and potentially binds the pool to a name via
   Agent.
   """
-  def create_pool(num, opts \\ []) when is_number(num) and is_list(opts) do
+  def create_pool(num, opts \\ []) when num > 0 and is_list(opts) do
     gen_args = Keyword.get(opts, :args, fn -> [] end)
     options = ExPool.Options.parse(opts)
 
@@ -26,13 +26,32 @@ defmodule ExPool do
       HashDict.put(dict, num, ExPool.Internal.start(args))
     end)
 
-    expool = %ExPool{ opts: options, pool: pool, size: num }
+    expool = %ExPool{
+      opts: options,
+      pool: pool,
+      size: num
+    }
 
-    if options.register != nil do
-      Agent.start_link(fn -> expool end, [ name: options.register ])
+    Agent.start_link(fn -> %{} end, name: :expool_rounds)
+
+    result = case options.register do
+      nil ->
+        case Agent.start_link(fn -> expool end) do
+          { :ok, pid } = output ->
+            Agent.update(pid, fn(pool) -> %ExPool{ pool | name: pid } end)
+            output
+          error -> error
+        end
+      name ->
+        Agent.start_link(fn ->
+          %ExPool{ expool | name: name }
+        end, name: name)
     end
 
-    expool
+    case result do
+      { :ok, pid } -> { :ok, get_pool(pid) }
+      { :error, _msg } = err -> err
+    end
   end
 
   @doc """
@@ -54,30 +73,14 @@ defmodule ExPool do
   def submit(%ExPool{ active: false }, _) do
     { :error, "Task submitted to inactive pool!" }
   end
-  def submit(%ExPool{ pool: p, size: s, opts: %ExPool.Options { } } = pool, func) when
-      is_map(p) and is_number(s) and is_function(func) do
+  def submit(%ExPool{ pool: p, size: s } = pool, func)
+  when is_map(p) and is_number(s) and is_function(func) do
 
-    case pool.opts.selection do
-      :round_robin ->
-        index = pool.index + 1
-        if pool.index == pool.size do
-          index = 1
-        end
-        pool = %ExPool{ pool | index: index }
-        if pool.opts.register != nil do
-          Agent.update(pool.opts.register, fn(_) -> pool end, 5000)
-        end
-      :random ->
-        index = :random.uniform(pool.size)
-      other ->
-        raise "Unrecognised selection method provided: #{other}"
-    end
-
+    index = ExPool.Balancers.balance(pool.opts.balancer, pool)
     pid = HashDict.get(p, index)
-
     send(pid, { :spawn, func })
 
-    { :ok, pid, pool }
+    { :ok, pid }
   end
   def submit(id, func) when (is_atom(id) or is_pid(id)) and is_function(func) do
     submit(get_pool(id), func)
@@ -91,16 +94,18 @@ defmodule ExPool do
   a pool marked as inactive to avoid developers sending uncaught messages through
   the pipeline.
   """
-  def terminate(%ExPool{ } = pool) do
+  def terminate(%ExPool{ } = pool), do: terminate(pool.name)
+  def terminate(id) when is_atom(id) or is_pid(id) do
+    pool = get_pool(id)
+
     pool.pool
     |> HashDict.values
     |> Enum.each(&(Process.exit(&1, :shutdown)))
 
-    %ExPool{ pool | active: false }
-  end
-  def terminate(id) when is_atom(id) or is_pid(id) do
-    pool = terminate(get_pool(id))
+    pool = %ExPool{ pool | active: false }
+
     Agent.update(id, fn(_) -> pool end, 5000)
+
     pool
   end
 

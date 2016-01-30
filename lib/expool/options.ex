@@ -3,7 +3,7 @@ defmodule ExPool.Options do
   Option parser for ExPool, to normalize the keyword lists into
   a more recognisable structure.
   """
-  defstruct register: nil, selection: nil
+  defstruct register: nil, balancer: nil
 
   @doc """
   Parses a keyword list to %ExPool.Options{ } for easier access
@@ -11,8 +11,8 @@ defmodule ExPool.Options do
   """
   def parse(opts \\ []) do
     %ExPool.Options {
-      register:   Keyword.get(opts, :register, nil),
-      selection:  Keyword.get(opts, :selection, :round_robin)
+      register:  Keyword.get(opts, :register, nil),
+      balancer:  Keyword.get(opts, :balancer, :round_robin)
     }
   end
 
