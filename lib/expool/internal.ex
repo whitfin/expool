@@ -1,8 +1,7 @@
-defmodule ExPool.Internal do
-  @moduledoc """
-  Internal infinite server, being used as the main driver behind
-  each worker inside the Process pools.
-  """
+defmodule Expool.Internal do
+  @moduledoc false
+  # Internal infinite server, being used as the main driver behind
+  # each worker inside the Process pools.
 
   @doc """
   Simply spawns off a new Process with the provided arguments.
@@ -19,8 +18,7 @@ defmodule ExPool.Internal do
     receive do
       { :spawn, action } when is_function(action) ->
         apply(action, args)
-      message ->
-        IO.puts("Unrecognised message: #{inspect message}")
+      message -> IO.puts("Unrecognised message: #{inspect message}")
     end
     listen(args)
   end
