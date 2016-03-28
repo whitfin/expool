@@ -4,7 +4,7 @@ defmodule ExpoolTest do
   test "basic pool assigns processes" do
     { :ok, pid } = Expool.create_pool(5)
 
-    pool = Expool.get_pool(pid)
+    pool = elem(Expool.get_pool(pid), 1)
 
     assert(pool.active == true)
     assert(pool.opts.register == nil)
@@ -16,7 +16,7 @@ defmodule ExpoolTest do
   test "pool can be named" do
     { :ok, pid } = Expool.create_pool(5, name: :test)
 
-    pool = Expool.get_pool(pid)
+    pool = elem(Expool.get_pool(pid), 1)
 
     assert(pool.active == true)
     assert(pool.opts.register == :test)
@@ -28,7 +28,7 @@ defmodule ExpoolTest do
   test "pool can use random strategy" do
     { :ok, pid } = Expool.create_pool(5, strategy: :random)
 
-    pool = Expool.get_pool(pid)
+    pool = elem(Expool.get_pool(pid), 1)
 
     assert(pool.active == true)
     assert(pool.opts.register == nil)
@@ -130,7 +130,7 @@ defmodule ExpoolTest do
 
     { atom, msg } = Expool.submit(pid, fn -> 1 end)
 
-    new_pool = Expool.get_pool(pid)
+    new_pool = elem(Expool.get_pool(pid), 1)
 
     assert(new_pool.active == false)
     assert(atom == :error)
@@ -143,7 +143,7 @@ defmodule ExpoolTest do
 
     { atom, msg } = Expool.submit(:my_pool, fn -> 1 end)
 
-    new_pool = Expool.get_pool(pid)
+    new_pool = elem(Expool.get_pool(pid), 1)
 
     assert(new_pool.active == false)
     assert(atom == :error)
