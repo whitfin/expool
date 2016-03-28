@@ -2,79 +2,72 @@ defmodule Expool do
   @moduledoc """
   This module provides a simple interface for concurrent process usage. The
   `Expool.create_pool/2` function is used to create a base pool of processes,
-  and is then used for task sumission using `Expool.submit/2`.
+  and is then used for task submission using `Expool.submit/2`.
   """
-  defstruct name: nil, opts: nil, pool: nil, size: nil, active: true
+  # alias some stuff
+  alias Expool.Balancers
+  alias Expool.Internal
+  alias Expool.Options
 
-  # alias both Expool.Balancers/Internal/Options
-  alias Expool.Balancers, as: Balancers
-  alias Expool.Internal, as: Internal
-  alias Expool.Options, as: Options
+  defstruct active: true,
+            balancer: nil,
+            opts: nil,
+            pool: nil,
+            size: nil
 
   @doc """
-  Creates a new set of N Processes, adding them to a Map so they
-  can be referenced at a later time. Processes various options using
-  Expool.Options.parse/1, and potentially binds the pool to a name via
-  Agent.
+  Creates a new set of `size` processes, adding them to a Map so they can be
+  referenced at a later time. Parses various options using `Expool.Options.parse/1`,
+  and potentially binds the pool to a name via Agent.
 
   ## Options
-    * `:register` - a name to register the pool against (defaults to using `nil`)
+
+    * `:name` - a name to register the pool against (defaults to using `nil`)
     * `:strategy` - the balancing strategy to use (defaults to `:round_robin`)
 
   """
-  @spec create_pool(number, list) :: Expool
+  @spec create_pool(number, list) :: { atom, Expool }
   def create_pool(size, opts \\ []) when size > 0 and is_list(opts) do
-    gen_args = Keyword.get(opts, :args, fn -> [] end)
-    options = Options.parse(opts)
+    options =
+      opts
+      |> Options.parse
 
-    pool = Enum.reduce(1..size, Map.new(), fn(num, dict) ->
-      args = gen_args.()
-      unless is_list(args) do
-        args = case args do
-          nil -> []
-          arg -> [arg]
-        end
-      end
-      Map.put(dict, num, Internal.start(args))
-    end)
+    pool =
+      1..size
+      |> Enum.reduce(%{}, fn(num, dict) ->
+          args =
+            options.arg_generate.()
+            |> List.wrap
 
-    Agent.start_link(fn -> %{} end, name: :expool_rounds)
+          { :ok, worker } =
+            args
+            |> Internal.start_link
 
-    expool = %Expool{
+          Map.put(dict, num, worker)
+        end)
+
+    base_pool = Balancers.setup(%Expool{
       opts: options,
       pool: pool,
       size: size
-    }
+    })
 
-    result = case options.register do
-      nil ->
-        case Agent.start_link(fn -> expool end) do
-          { :ok, pid } = output ->
-            Agent.update(pid, fn(pool) ->
-              %Expool{ pool | name: pid }
-            end)
-            output
-          error -> error
-        end
-      name ->
-        Agent.start_link(fn ->
-          %Expool{ expool | name: name }
-        end, name: name)
-    end
-
-    case result do
-      { :ok, pid } -> { :ok, get_pool(pid) }
-      { :error, _msg } = err -> err
-    end
+    Agent.start_link(fn -> base_pool end, case options.register do
+      nil  -> []
+      name -> [ name: name ]
+    end)
   end
 
   @doc """
   Retrieves a registered pool by name or PID. This is a shorthand for calling
-  the Agent manually.
+  the Agent manually, but it will return `nil` if a valid pool is not found.
   """
   @spec get_pool(atom | pid) :: Expool
   def get_pool(id) when is_atom(id) or is_pid(id) do
-    Agent.get(id, &(&1))
+    Agent.get(id, fn
+      (%Expool{ } = pool) -> pool
+      (_other) -> nil
+    end)
   end
 
   @doc """
@@ -86,36 +79,28 @@ defmodule Expool do
   appropriate, to reflect any changes inside the pool.
   """
   @spec submit(Expool | atom | pid, function) :: { atom, pid }
-  def submit(%Expool{ name: name } = _pool, action)
-  when is_function(action) do
-    submit_internal(name, action)
-  end
-  def submit(id, action)
-  when (is_atom(id) or is_pid(id)) and is_function(action) do
-    submit_internal(id, action)
-  end
+  def submit(%Expool{ active: true } = pool, action) when is_function(action) do
+    { index, new_pool } =
+      pool
+      |> Balancers.balance
 
-  # Internal submission, taking an id or pool, retrieving the pool, and then
-  # firing off the task. This is needed to ensure we always keep internal
-  # states up to date.
-  @spec submit_internal(Expool | atom | pid, function) :: { atom, pid }
-  defp submit_internal(%Expool{ active: false }, _) do
+    pool.pool
+    |> Map.get(index)
+    |> Internal.execute(action)
+    |> Tuple.append(new_pool)
+  end
+  def submit(%Expool{ active: false } = _pool, _action) do
     { :error, "Task submitted to inactive pool!" }
   end
-  defp submit_internal(id, action)
-  when (is_atom(id) or is_pid(id)) and is_function(action) do
-    id
-    |> get_pool
-    |> submit_internal(action)
-  end
-  defp submit_internal(%Expool{ } = pool, action) when is_function(action) do
-    index = Balancers.balance(pool.opts.strategy, pool)
-    pid = pool.pool[index]
-    send(pid, { :spawn, action })
-    { :ok, pid }
-  end
-  defp submit_internal(_, _) do
-    { :error, "Invalid Expool provided on submission!" }
+  def submit(id, action) when is_atom(id) or is_pid(id) do
+    Agent.get_and_update(id, fn(pool) ->
+      case submit(pool, action) do
+        { :error, _msg } = error ->
+          { error, pool }
+        { :ok, pid, new_pool } ->
+          { { :ok, pid }, new_pool }
+      end
+    end)
   end
 
   @doc """
@@ -124,16 +109,21 @@ defmodule Expool do
   the pipeline.
   """
   @spec terminate(Expool | atom | pid) :: Expool
-  def terminate(%Expool{ } = pool), do: terminate(pool.name)
+  def terminate(%Expool{ pool: pids } = pool) do
+    pids
+    |> Map.values
+    |> Enum.each(&(Process.exit(&1, :normal)))
+
+    { :ok, %Expool{ pool | active: false } }
+  end
   def terminate(id) when is_atom(id) or is_pid(id) do
     Agent.get_and_update(id, fn(pool) ->
-      pool.pool
-      |> Map.values
-      |> Enum.each(&(Process.exit(&1, :shutdown)))
-
-      pool = %Expool{ pool | active: false }
-
-      { { :ok, pool }, pool }
+      case terminate(pool) do
+        { :error, _msg } = error ->
+          { error, pool }
+        { :ok, new_pool } ->
+          { { :ok, true }, new_pool }
+      end
     end)
   end
 

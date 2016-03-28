@@ -1,8 +1,10 @@
 defmodule ExpoolTest do
-  use ExUnit.Case, async: true
+  use PowerAssert, async: true
 
   test "basic pool assigns processes" do
-    { :ok, pool } = Expool.create_pool(5)
+    { :ok, pid } = Expool.create_pool(5)
+
+    pool = Expool.get_pool(pid)
 
     assert(pool.active == true)
     assert(pool.opts.register == nil)
@@ -12,10 +14,11 @@ defmodule ExpoolTest do
   end
 
   test "pool can be named" do
-    { :ok, pool } = Expool.create_pool(5, name: :test)
+    { :ok, pid } = Expool.create_pool(5, name: :test)
+
+    pool = Expool.get_pool(pid)
 
     assert(pool.active == true)
-    assert(pool.name == :test)
     assert(pool.opts.register == :test)
     assert(pool.opts.strategy == :round_robin)
     assert(Enum.count(pool.pool) == 5)
@@ -23,7 +26,9 @@ defmodule ExpoolTest do
   end
 
   test "pool can use random strategy" do
-    { :ok, pool } = Expool.create_pool(5, strategy: :random)
+    { :ok, pid } = Expool.create_pool(5, strategy: :random)
+
+    pool = Expool.get_pool(pid)
 
     assert(pool.active == true)
     assert(pool.opts.register == nil)
@@ -47,6 +52,19 @@ defmodule ExpoolTest do
 
   test "pool can have many arguments bound" do
     { :ok, pool } = Expool.create_pool(5, args: fn -> [1,2,3] end)
+    { :ok, pid0 } = Agent.start_link(fn -> 0 end)
+
+    Expool.submit(pool, fn(a, b, c) ->
+      Agent.update(pid0, &(&1 + a + b + c))
+    end)
+
+    :timer.sleep(1)
+
+    assert(Agent.get(pid0, &(&1)) == 6)
+  end
+
+  test "pool can have an argument list bound" do
+    { :ok, pool } = Expool.create_pool(5, args: [1,2,3])
     { :ok, pid0 } = Agent.start_link(fn -> 0 end)
 
     Expool.submit(pool, fn(a, b, c) ->
@@ -107,10 +125,12 @@ defmodule ExpoolTest do
   end
 
   test "terminating an unnamed pool of processes" do
-    { :ok, pool } = Expool.create_pool(3)
-    { :ok, new_pool } = Expool.terminate(pool)
+    { :ok, pid } = Expool.create_pool(3)
+    { :ok, true } = Expool.terminate(pid)
 
-    { atom, msg } = Expool.submit(pool, fn -> 1 end)
+    { atom, msg } = Expool.submit(pid, fn -> 1 end)
+
+    new_pool = Expool.get_pool(pid)
 
     assert(new_pool.active == false)
     assert(atom == :error)
@@ -118,10 +138,12 @@ defmodule ExpoolTest do
   end
 
   test "terminating a named pool of processes" do
-    { :ok, _pool } = Expool.create_pool(3, name: :my_pool)
-    { :ok, new_pool } = Expool.terminate(:my_pool)
+    { :ok, pid } = Expool.create_pool(3, name: :my_pool)
+    { :ok, true } = Expool.terminate(:my_pool)
 
-    { atom, msg} = Expool.submit(:my_pool, fn -> 1 end)
+    { atom, msg } = Expool.submit(:my_pool, fn -> 1 end)
+
+    new_pool = Expool.get_pool(pid)
 
     assert(new_pool.active == false)
     assert(atom == :error)

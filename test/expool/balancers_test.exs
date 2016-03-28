@@ -1,16 +1,14 @@
 defmodule ExpoolBalancersTest do
-  use ExUnit.Case
+  use PowerAssert
   doctest Expool.Balancers
 
   test "calling an unrecognised balancer" do
-    error = try do
-      Expool.Balancers.balance(:fake, Expool.create_pool(3))
-    rescue
-      e in ArgumentError -> e
-    end
+    { :ok, pid } = Expool.create_pool(3, strategy: :fail)
 
-    assert(error != nil)
-    assert(error.message == "Unrecognised selection method provided: fake")
+    pool = Agent.get(pid, &(&1))
+    res = Expool.Balancers.balance(pool)
+
+    assert(res == { 1, pool })
   end
 
 end

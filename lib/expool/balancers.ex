@@ -1,33 +1,44 @@
 defmodule Expool.Balancers do
+  # require the Logger
+  require Logger
+
   @moduledoc false
   # Balancer module to define various methods of determining which process to
-  # call on the next iteration.
+  # call on the next iteration. We expose a setup and a balance method to allow
+  # balancers to set up any arguments they need, and to provide a balancing
+  # implementation.
+
+  # alias some deps
+  alias Expool.Options
 
   @doc """
-  Returns the index of the PID in the pool which should be used when triggering
-  another message being sent into the pool. The first argument determines the
-  strategy to use, and there are different implementations per strategy. The
-  second argument is simply the Expool instance being worked with.
+  Accepts a pool to use for balancing and returns a tuple of `{ index, new_pool }`
+  where `new_pool` is a modified instance of the pool in case the balancer needs
+  to carry out any modifications.
   """
-  @spec balance(atom, Expool) :: number
-  def balance(:random, %Expool{ size: size } = _pool), do: :random.uniform(size)
-  def balance(:round_robin, %Expool{ size: size, name: name } = _pool) do
-    Agent.get_and_update(:expool_rounds, fn(rounds) ->
-      Map.get_and_update(rounds, name, fn
-        (index) when is_number(index) ->
-          { index, reset_counter(index, size) }
-        (_index) ->
-          { 1, reset_counter(1, size) }
-      end)
+  @spec balance(Expool) :: number
+  def balance(%Expool{ size: size, opts: %Options { strategy: :random } } = pool) do
+    { :crypto.rand_uniform(1, size), pool }
+  end
+  def balance(%Expool{ balancer: balancer, size: size, opts: %Options { strategy: :round_robin } } = pool) do
+    { index, new_balancer } = Map.get_and_update(balancer, "index", fn
+      (index) when index == size + 1 ->
+        { 1, 2 }
+      (index) ->
+        { index, index + 1 }
     end)
+    { index, %Expool{ pool | balancer: new_balancer } }
   end
-  def balance(type, _pool) do
-    raise ArgumentError, message: "Unrecognised selection method provided: #{type}"
-  end
+  def balance(pool), do: { 1, pool }
 
-  # Basic shorthand for resetting a counter when max size is hit
-  defp reset_counter(index, size) do
-    if index == size, do: 1, else: index + 1
-  end
+  @doc """
+  Sets up a pool based on the strategy being used. An Expool includes a special
+  "balancer" key which is essentially an arbitrary key designed for use by any
+  balancers. This function should return the modified pool.
+  """
+  @spec setup(Expool) :: Expool
+  def setup(%Expool{ opts: %Options { strategy: :round_robin } } = pool),
+  do: %Expool{ pool | balancer: %{ "index" => 1 } }
+  def setup(%Expool{ } = pool), do: pool
 
 end
