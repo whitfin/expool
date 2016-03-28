@@ -4,6 +4,7 @@ defmodule Expool do
   `Expool.create_pool/2` function is used to create a base pool of processes,
   and is then used for task submission using `Expool.submit/2`.
   """
+
   # alias some stuff
   alias Expool.Balancers
   alias Expool.Internal
@@ -60,13 +61,13 @@ defmodule Expool do
 
   @doc """
   Retrieves a registered pool by name or PID. This is a shorthand for calling
-  the Agent manually, but it will return `nil` if a valid pool is not found.
+  the Agent manually, but it will return an error if a valid pool is not found.
   """
   @spec get_pool(atom | pid) :: Expool
   def get_pool(id) when is_atom(id) or is_pid(id) do
     Agent.get(id, fn
-      (%Expool{ } = pool) -> pool
-      (_other) -> nil
+      (%Expool{ } = pool) -> { :ok, pool }
+      (_other) -> { :error, :not_found }
     end)
   end
 

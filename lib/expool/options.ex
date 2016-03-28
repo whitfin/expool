@@ -13,6 +13,7 @@ defmodule Expool.Options do
   throughout the application. We just take certain keys from the options list and
   default them if they're missing.
   """
+  @spec parse([ { atom, atom } ]) :: Expool.Options
   def parse(opts \\ []) do
     %Expool.Options{
       arg_generate: case opts[:args] do
