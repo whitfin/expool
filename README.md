@@ -9,15 +9,19 @@ The package can be installed via Hex:
 
   1. Add expool to your list of dependencies in `mix.exs`:
 
-        def deps do
-          [{:expool, "~> 0.2.0"}]
-        end
+```elixir
+  def deps do
+    [{:expool, "~> 0.2.0"}]
+  end
+```
 
   2. Ensure expool is started before your application:
 
-        def application do
-          [applications: [:expool]]
-        end
+```elixir
+  def application do
+    [applications: [:expool]]
+  end
+```
 
 ## Usage
 
