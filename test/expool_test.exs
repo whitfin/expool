@@ -1,5 +1,5 @@
 defmodule ExpoolTest do
-  use PowerAssert, async: true
+  use ExUnit.Case, async: true
 
   test "basic pool assigns processes" do
     {:ok, pid} = Expool.create_pool(5)

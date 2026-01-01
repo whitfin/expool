@@ -18,7 +18,7 @@ defmodule Expool.Balancers do
   """
   @spec balance(Expool) :: number
   def balance(%Expool{size: size, opts: %Options{strategy: :random}} = pool) do
-    {:crypto.rand_uniform(1, size), pool}
+    {:rand.uniform(size), pool}
   end
 
   def balance(

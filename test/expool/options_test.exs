@@ -1,4 +1,4 @@
 defmodule ExpoolOptionsTest do
-  use PowerAssert
+  use ExUnit.Case
   doctest Expool.Options
 end

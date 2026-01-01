@@ -1,11 +1,13 @@
 defmodule Expool.Internal do
-  # inherit GenServer
-  use GenServer
-
   @moduledoc false
   # Internal server implementation, being used as the main driver behind each
   # worker in the pool. The server simply has a cast listener accepting a message
   # including the function to execute.
+  use GenServer
+
+  # Default handler.
+  def init(args),
+    do: {:ok, args}
 
   @doc """
   Starts up a server using the built-in GenServer module. We pass through any
@@ -15,18 +17,14 @@ defmodule Expool.Internal do
     GenServer.start_link(__MODULE__, options, server_opts)
   end
 
-  @doc """
-  The main handler, accepting a `:spawn` message alongside an action. The state
-  at this point is simply a list of actions to provide to the action to execute.
-  """
+  # The main handler, accepting a `:spawn` message alongside an action. The state
+  # at this point is simply a list of actions to provide to the action to execute.
   def handle_cast({:spawn, action}, args) when is_function(action) do
     apply(action, args)
     {:noreply, args}
   end
 
-  @doc """
-  Simply a catch-all cast to avoid the Server crashing unexpectedly.
-  """
+  # Simply a catch-all cast to avoid the Server crashing unexpectedly.
   def handle_cast(_, args) do
     {:noreply, args}
   end

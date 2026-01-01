@@ -1,5 +1,5 @@
 defmodule ExpoolBalancersTest do
-  use PowerAssert
+  use ExUnit.Case
   doctest Expool.Balancers
 
   test "calling an unrecognised balancer" do
