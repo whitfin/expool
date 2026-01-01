@@ -37,8 +37,8 @@ defmodule ExPool.Mixfile do
       preferred_cli_env: [
         coveralls: :test,
         "coveralls.detail": :test,
-        "coveralls.html": :test,
-        "coveralls.travis": :test
+        "coveralls.github": :test,
+        "coveralls.html": :test
       ]
     ]
   end

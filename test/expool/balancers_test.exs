@@ -8,6 +8,6 @@ defmodule ExpoolBalancersTest do
     pool = Agent.get(pid, & &1)
     res = Expool.Balancers.balance(pool)
 
-    assert(res == {1, pool})
+    assert res == {1, pool}
   end
 end

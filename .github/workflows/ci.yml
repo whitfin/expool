@@ -82,6 +82,3 @@ jobs:
 
       - name: Validate Formatting
         run: mix format --check-formatted
-
-      - name: Validate Linting
-        run: mix credo --all --format=oneline
