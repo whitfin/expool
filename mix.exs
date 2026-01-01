@@ -43,13 +43,6 @@ defmodule ExPool.Mixfile do
     ]
   end
 
-  # Configuration for the OTP application
-  #
-  # Type "mix help compile.app" for more information
-  def application do
-    [applications: [:logger]]
-  end
-
   # Dependencies can be Hex packages:
   #
   #   {:mydep, "~> 0.3.0"}
@@ -62,7 +55,7 @@ defmodule ExPool.Mixfile do
   defp deps do
     [
       {:ex_doc, "~> 0.29", optional: true, only: :docs},
-      {:excoveralls, "~> 0.15", optional: true, only: :test},
+      {:excoveralls, "~> 0.18", optional: true, only: :test},
       {:power_assert, "~> 0.3", optional: true, only: :test}
     ]
   end
