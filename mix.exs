@@ -61,15 +61,9 @@ defmodule ExPool.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
-      # documentation
-      {:earmark, "~> 0.2", optional: true, only: :docs},
-      {:ex_doc, "~> 0.11", optional: true, only: :docs},
-      # testing
-      {:benchfella, "~> 0.3.2", optional: true, only: :test},
-      {:benchwarmer, "~> 0.0.2", optional: true, only: :test},
-      {:excoveralls, "~> 0.5.1", optional: true, only: :test},
-      {:exprof, "~> 0.2.0", optional: true, only: :test},
-      {:power_assert, "~> 0.0.8", optional: true, only: :test}
+      {:ex_doc, "~> 0.29", optional: true, only: :docs},
+      {:excoveralls, "~> 0.15", optional: true, only: :test},
+      {:power_assert, "~> 0.3", optional: true, only: :test}
     ]
   end
 end
