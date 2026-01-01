@@ -16,18 +16,18 @@ defmodule ExPool.Mixfile do
           "LICENSE",
           "README.md"
         ],
-        licenses: [ "MIT" ],
+        licenses: ["MIT"],
         links: %{
           "Docs" => @url_docs,
           "GitHub" => @url_github
         },
-        maintainers: [ "Isaac Whitfield" ]
+        maintainers: ["Isaac Whitfield"]
       },
       version: "0.2.0",
       elixir: "~> 1.1",
-      deps: deps,
+      deps: deps(),
       docs: [
-        extras: [ "README.md" ],
+        extras: ["README.md"],
         source_ref: "master",
         source_url: @url_github
       ],
@@ -35,7 +35,7 @@ defmodule ExPool.Mixfile do
         tool: ExCoveralls
       ],
       preferred_cli_env: [
-        "coveralls": :test,
+        coveralls: :test,
         "coveralls.detail": :test,
         "coveralls.html": :test,
         "coveralls.travis": :test
@@ -62,14 +62,14 @@ defmodule ExPool.Mixfile do
   defp deps do
     [
       # documentation
-      { :earmark, "~> 0.2.1",  optional: true, only: :docs },
-      { :ex_doc,  "~> 0.11.4", optional: true, only: :docs },
+      {:earmark, "~> 0.2", optional: true, only: :docs},
+      {:ex_doc, "~> 0.11", optional: true, only: :docs},
       # testing
-      { :benchfella,   "~> 0.3.2", optional: true, only: :test },
-      { :benchwarmer,  "~> 0.0.2", optional: true, only: :test },
-      { :excoveralls,  "~> 0.5.1", optional: true, only: :test },
-      { :exprof,       "~> 0.2.0", optional: true, only: :test },
-      { :power_assert, "~> 0.0.8", optional: true, only: :test }
+      {:benchfella, "~> 0.3.2", optional: true, only: :test},
+      {:benchwarmer, "~> 0.0.2", optional: true, only: :test},
+      {:excoveralls, "~> 0.5.1", optional: true, only: :test},
+      {:exprof, "~> 0.2.0", optional: true, only: :test},
+      {:power_assert, "~> 0.0.8", optional: true, only: :test}
     ]
   end
 end

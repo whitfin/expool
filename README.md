@@ -1,5 +1,5 @@
 # Expool
-[![Build Status](https://img.shields.io/travis/zackehh/expool.svg)](https://travis-ci.org/zackehh/expool) [![Coverage Status](https://img.shields.io/coveralls/zackehh/expool.svg)](https://coveralls.io/github/zackehh/expool) [![Hex.pm Version](https://img.shields.io/hexpm/v/expool.svg)](https://hex.pm/packages/expool) [![Documentation](https://img.shields.io/badge/docs-latest-yellowgreen.svg)](https://hexdocs.pm/expool/)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/whitfin/expool/ci.yml?branch=main)](https://github.com/whitfin/expool/actions) [![Coverage Status](https://img.shields.io/coveralls/whitfin/expool.svg)](https://coveralls.io/github/whitfin/expool) [![Hex.pm Version](https://img.shields.io/hexpm/v/expool.svg)](https://hex.pm/packages/expool) [![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://hexdocs.pm/expool/)
 
 A simple Process pooling library to avoid having to repeatedly write the boilerplate into your projects. Supports a couple of cool options, but nothing too crazy (yet). Basically just a way to abstract the spawning of processes and tasks, and ensure you're aware how concurrent your application is (i.e. avoid spawning off millions of procs accidentally).
 
@@ -7,17 +7,11 @@ A simple Process pooling library to avoid having to repeatedly write the boilerp
 
 The package can be installed via Hex:
 
-  1. Add expool to your list of dependencies in `mix.exs`:
-
-        def deps do
-          [{:expool, "~> 0.2.0"}]
-        end
-
-  2. Ensure expool is started before your application:
-
-        def application do
-          [applications: [:expool]]
-        end
+```elixir
+def deps do
+  [{:expool, "~> 0.2"}]
+end
+```
 
 ## Usage
 

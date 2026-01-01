@@ -27,36 +27,40 @@ defmodule Expool do
     * `:strategy` - the balancing strategy to use (defaults to `:round_robin`)
 
   """
-  @spec create_pool(number, list) :: { atom, Expool }
+  @spec create_pool(number, list) :: {atom, Expool}
   def create_pool(size, opts \\ []) when size > 0 and is_list(opts) do
     options =
       opts
-      |> Options.parse
+      |> Options.parse()
 
     pool =
       1..size
-      |> Enum.reduce(%{}, fn(num, dict) ->
-          args =
-            options.arg_generate.()
-            |> List.wrap
+      |> Enum.reduce(%{}, fn num, dict ->
+        args =
+          options.arg_generate.()
+          |> List.wrap()
 
-          { :ok, worker } =
-            args
-            |> Internal.start_link
+        {:ok, worker} =
+          args
+          |> Internal.start_link()
 
-          Map.put(dict, num, worker)
-        end)
+        Map.put(dict, num, worker)
+      end)
 
-    base_pool = Balancers.setup(%Expool{
-      opts: options,
-      pool: pool,
-      size: size
-    })
+    base_pool =
+      Balancers.setup(%Expool{
+        opts: options,
+        pool: pool,
+        size: size
+      })
 
-    Agent.start_link(fn -> base_pool end, case options.register do
-      nil  -> []
-      name -> [ name: name ]
-    end)
+    Agent.start_link(
+      fn -> base_pool end,
+      case options.register do
+        nil -> []
+        name -> [name: name]
+      end
+    )
   end
 
   @doc """
@@ -66,8 +70,8 @@ defmodule Expool do
   @spec get_pool(atom | pid) :: Expool
   def get_pool(id) when is_atom(id) or is_pid(id) do
     Agent.get(id, fn
-      (%Expool{ } = pool) -> { :ok, pool }
-      (_other) -> { :error, :not_found }
+      %Expool{} = pool -> {:ok, pool}
+      _other -> {:error, :not_found}
     end)
   end
 
@@ -79,27 +83,30 @@ defmodule Expool do
   If there is a name registered, the Agent will have the state updated when
   appropriate, to reflect any changes inside the pool.
   """
-  @spec submit(Expool | atom | pid, function) :: { atom, pid }
-  def submit(%Expool{ active: true } = pool, action) when is_function(action) do
-    { index, new_pool } =
+  @spec submit(Expool | atom | pid, function) :: {atom, pid}
+  def submit(%Expool{active: true} = pool, action) when is_function(action) do
+    {index, new_pool} =
       pool
-      |> Balancers.balance
+      |> Balancers.balance()
 
     pool.pool
     |> Map.get(index)
     |> Internal.execute(action)
     |> Tuple.append(new_pool)
   end
-  def submit(%Expool{ active: false } = _pool, _action) do
-    { :error, "Task submitted to inactive pool!" }
+
+  def submit(%Expool{active: false} = _pool, _action) do
+    {:error, "Task submitted to inactive pool!"}
   end
+
   def submit(id, action) when is_atom(id) or is_pid(id) do
-    Agent.get_and_update(id, fn(pool) ->
+    Agent.get_and_update(id, fn pool ->
       case submit(pool, action) do
-        { :error, _msg } = error ->
-          { error, pool }
-        { :ok, pid, new_pool } ->
-          { { :ok, pid }, new_pool }
+        {:error, _msg} = error ->
+          {error, pool}
+
+        {:ok, pid, new_pool} ->
+          {{:ok, pid}, new_pool}
       end
     end)
   end
@@ -110,22 +117,23 @@ defmodule Expool do
   the pipeline.
   """
   @spec terminate(Expool | atom | pid) :: Expool
-  def terminate(%Expool{ pool: pids } = pool) do
+  def terminate(%Expool{pool: pids} = pool) do
     pids
-    |> Map.values
-    |> Enum.each(&(Process.exit(&1, :normal)))
+    |> Map.values()
+    |> Enum.each(&Process.exit(&1, :normal))
 
-    { :ok, %Expool{ pool | active: false } }
+    {:ok, %Expool{pool | active: false}}
   end
+
   def terminate(id) when is_atom(id) or is_pid(id) do
-    Agent.get_and_update(id, fn(pool) ->
+    Agent.get_and_update(id, fn pool ->
       case terminate(pool) do
-        { :error, _msg } = error ->
-          { error, pool }
-        { :ok, new_pool } ->
-          { { :ok, true }, new_pool }
+        {:error, _msg} = error ->
+          {error, pool}
+
+        {:ok, new_pool} ->
+          {{:ok, true}, new_pool}
       end
     end)
   end
-
 end

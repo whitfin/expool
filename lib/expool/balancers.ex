@@ -17,19 +17,26 @@ defmodule Expool.Balancers do
   to carry out any modifications.
   """
   @spec balance(Expool) :: number
-  def balance(%Expool{ size: size, opts: %Options { strategy: :random } } = pool) do
-    { :crypto.rand_uniform(1, size), pool }
+  def balance(%Expool{size: size, opts: %Options{strategy: :random}} = pool) do
+    {:crypto.rand_uniform(1, size), pool}
   end
-  def balance(%Expool{ balancer: balancer, size: size, opts: %Options { strategy: :round_robin } } = pool) do
-    { index, new_balancer } = Map.get_and_update(balancer, "index", fn
-      (index) when index == size + 1 ->
-        { 1, 2 }
-      (index) ->
-        { index, index + 1 }
-    end)
-    { index, %Expool{ pool | balancer: new_balancer } }
+
+  def balance(
+        %Expool{balancer: balancer, size: size, opts: %Options{strategy: :round_robin}} = pool
+      ) do
+    {index, new_balancer} =
+      Map.get_and_update(balancer, "index", fn
+        index when index == size + 1 ->
+          {1, 2}
+
+        index ->
+          {index, index + 1}
+      end)
+
+    {index, %Expool{pool | balancer: new_balancer}}
   end
-  def balance(pool), do: { 1, pool }
+
+  def balance(pool), do: {1, pool}
 
   @doc """
   Sets up a pool based on the strategy being used. An Expool includes a special
@@ -37,8 +44,8 @@ defmodule Expool.Balancers do
   balancers. This function should return the modified pool.
   """
   @spec setup(Expool) :: Expool
-  def setup(%Expool{ opts: %Options { strategy: :round_robin } } = pool),
-  do: %Expool{ pool | balancer: %{ "index" => 1 } }
-  def setup(%Expool{ } = pool), do: pool
+  def setup(%Expool{opts: %Options{strategy: :round_robin}} = pool),
+    do: %Expool{pool | balancer: %{"index" => 1}}
 
+  def setup(%Expool{} = pool), do: pool
 end

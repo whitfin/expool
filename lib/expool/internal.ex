@@ -19,16 +19,16 @@ defmodule Expool.Internal do
   The main handler, accepting a `:spawn` message alongside an action. The state
   at this point is simply a list of actions to provide to the action to execute.
   """
-  def handle_cast({ :spawn, action }, args) when is_function(action) do
+  def handle_cast({:spawn, action}, args) when is_function(action) do
     apply(action, args)
-    { :noreply, args }
+    {:noreply, args}
   end
 
   @doc """
   Simply a catch-all cast to avoid the Server crashing unexpectedly.
   """
   def handle_cast(_, args) do
-    { :noreply, args }
+    {:noreply, args}
   end
 
   @doc """
@@ -37,8 +37,7 @@ defmodule Expool.Internal do
   to execute.
   """
   def execute(pid, action) when is_pid(pid) and is_function(action) do
-    GenServer.cast(pid, { :spawn, action })
-    { :ok, pid }
+    GenServer.cast(pid, {:spawn, action})
+    {:ok, pid}
   end
-
 end
